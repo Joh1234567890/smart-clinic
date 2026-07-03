@@ -1,5 +1,6 @@
 package com.smartclinic.smartclinic.controller;
 
+import com.smartclinic.smartclinic.dto.DoctorResponse;
 import com.smartclinic.smartclinic.entity.Doctor;
 import com.smartclinic.smartclinic.service.DoctorService;
 import jakarta.validation.Valid;
@@ -22,24 +23,24 @@ public class DoctorController {
     private final DoctorService doctorService;
 
     @GetMapping
-    public ResponseEntity<List<Doctor>> getAllDoctors() {
+    public ResponseEntity<List<DoctorResponse>> getAllDoctors() {
         return ResponseEntity.ok(doctorService.getAllDoctors());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Doctor> getDoctorById(@PathVariable Long id) {
+    public ResponseEntity<DoctorResponse> getDoctorById(@PathVariable Long id) {
         return ResponseEntity.ok(doctorService.getDoctorById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Doctor> createDoctor(@Valid @RequestBody Doctor doctor) {
+    public ResponseEntity<DoctorResponse> createDoctor(@Valid @RequestBody Doctor doctor) {
         Doctor created = doctorService.createDoctor(doctor);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(DoctorResponse.from(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Doctor> updateDoctor(@PathVariable Long id, @Valid @RequestBody Doctor doctor) {
-        return ResponseEntity.ok(doctorService.updateDoctor(id, doctor));
+    public ResponseEntity<DoctorResponse> updateDoctor(@PathVariable Long id, @Valid @RequestBody Doctor doctor) {
+        return ResponseEntity.ok(DoctorResponse.from(doctorService.updateDoctor(id, doctor)));
     }
 
     @DeleteMapping("/{id}")
