@@ -1,5 +1,6 @@
 package com.smartclinic.smartclinic.service;
 
+import com.smartclinic.smartclinic.dto.PatientResponse;
 import com.smartclinic.smartclinic.entity.Patient;
 import com.smartclinic.smartclinic.exception.ResourceNotFoundException;
 import com.smartclinic.smartclinic.repository.PatientRepository;
@@ -17,20 +18,15 @@ public class PatientService {
     private final PatientRepository patientRepository;
 
     @Transactional(readOnly = true)
-    public List<Patient> getAllPatients() {
-        List<Patient> patients = patientRepository.findAll();
-        patients.forEach(p -> {
-            if (p.getUser() != null) p.getUser().getName();
-        });
-        return patients;
+    public List<PatientResponse> getAllPatients() {
+        return patientRepository.findAll().stream()
+                .map(PatientResponse::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public Patient getPatientById(Long id) {
-        Patient patient = patientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Patient", id));
-        if (patient.getUser() != null) patient.getUser().getName();
-        return patient;
+    public PatientResponse getPatientById(Long id) {
+        return PatientResponse.from(findPatientEntity(id));
     }
 
     public Patient createPatient(Patient patient) {
@@ -38,7 +34,7 @@ public class PatientService {
     }
 
     public Patient updatePatient(Long id, Patient updatedPatient) {
-        Patient existing = getPatientById(id);
+        Patient existing = findPatientEntity(id);
         existing.setAge(updatedPatient.getAge());
         existing.setGender(updatedPatient.getGender());
         existing.setUser(updatedPatient.getUser());
@@ -46,7 +42,12 @@ public class PatientService {
     }
 
     public void deletePatient(Long id) {
-        Patient existing = getPatientById(id);
+        Patient existing = findPatientEntity(id);
         patientRepository.delete(existing);
+    }
+
+    private Patient findPatientEntity(Long id) {
+        return patientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", id));
     }
 }

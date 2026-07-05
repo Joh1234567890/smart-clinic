@@ -1,6 +1,7 @@
 package com.smartclinic.smartclinic.controller;
 
 import com.smartclinic.smartclinic.dto.AppointmentActionResponse;
+import com.smartclinic.smartclinic.dto.AppointmentResponse;
 import com.smartclinic.smartclinic.dto.BookAppointmentRequest;
 import com.smartclinic.smartclinic.entity.Appointment;
 import com.smartclinic.smartclinic.service.AppointmentService;
@@ -55,13 +56,13 @@ public class AppointmentController {
 
     @PreAuthorize("hasRole('PATIENT')")
     @GetMapping("/my")
-    public ResponseEntity<List<Appointment>> getMyAppointments() {
+    public ResponseEntity<List<AppointmentResponse>> getMyAppointments() {
         return ResponseEntity.ok(appointmentService.getMyAppointments());
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     @GetMapping("/all")
-    public ResponseEntity<List<Appointment>> getAllAppointmentsForCaller() {
+    public ResponseEntity<List<AppointmentResponse>> getAllAppointmentsForCaller() {
         return ResponseEntity.ok(appointmentService.getAllOrAssignedAppointments());
     }
 
@@ -79,8 +80,8 @@ public class AppointmentController {
 
     @PreAuthorize("hasRole('DOCTOR')")
     @PutMapping("/{id}/complete")
-    public ResponseEntity<Appointment> completeAppointment(@PathVariable Long id) {
-        return ResponseEntity.ok(appointmentService.completeAppointment(id));
+    public ResponseEntity<AppointmentResponse> completeAppointment(@PathVariable Long id) {
+        return ResponseEntity.ok(AppointmentResponse.from(appointmentService.completeAppointment(id)));
     }
 
     // ------------------------------------------------------------------
@@ -89,39 +90,39 @@ public class AppointmentController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<Appointment>> getAllAppointments() {
+    public ResponseEntity<List<AppointmentResponse>> getAllAppointments() {
         return ResponseEntity.ok(appointmentService.getAllAppointments());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<Appointment> getAppointmentById(@PathVariable Long id) {
+    public ResponseEntity<AppointmentResponse> getAppointmentById(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.getAppointmentById(id));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<List<Appointment>> getAppointmentsByPatient(@PathVariable Long patientId) {
+    public ResponseEntity<List<AppointmentResponse>> getAppointmentsByPatient(@PathVariable Long patientId) {
         return ResponseEntity.ok(appointmentService.getAppointmentsByPatientId(patientId));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/doctor/{doctorId}")
-    public ResponseEntity<List<Appointment>> getAppointmentsByDoctor(@PathVariable Long doctorId) {
+    public ResponseEntity<List<AppointmentResponse>> getAppointmentsByDoctor(@PathVariable Long doctorId) {
         return ResponseEntity.ok(appointmentService.getAppointmentsByDoctorId(doctorId));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody Appointment appointment) {
+    public ResponseEntity<AppointmentResponse> createAppointment(@Valid @RequestBody Appointment appointment) {
         Appointment created = appointmentService.createAppointment(appointment);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(AppointmentResponse.from(created));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<Appointment> updateAppointment(@PathVariable Long id, @Valid @RequestBody Appointment appointment) {
-        return ResponseEntity.ok(appointmentService.updateAppointment(id, appointment));
+    public ResponseEntity<AppointmentResponse> updateAppointment(@PathVariable Long id, @Valid @RequestBody Appointment appointment) {
+        return ResponseEntity.ok(AppointmentResponse.from(appointmentService.updateAppointment(id, appointment)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

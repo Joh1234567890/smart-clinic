@@ -1,6 +1,7 @@
 package com.smartclinic.smartclinic.service;
 
 import com.smartclinic.smartclinic.dto.AppointmentActionResponse;
+import com.smartclinic.smartclinic.dto.AppointmentResponse;
 import com.smartclinic.smartclinic.dto.BookAppointmentRequest;
 import com.smartclinic.smartclinic.entity.*;
 import com.smartclinic.smartclinic.exception.ForbiddenOperationException;
@@ -80,7 +81,7 @@ public class AppointmentService {
     public AppointmentActionResponse bookAppointmentWithNotification(BookAppointmentRequest request) {
         Appointment booked = bookAppointment(request);
         String message = notificationService.notifyAppointmentBooked(booked);
-        return new AppointmentActionResponse(booked, message);
+        return new AppointmentActionResponse(AppointmentResponse.from(booked), message);
     }
 
     // ------------------------------------------------------------------
@@ -91,9 +92,11 @@ public class AppointmentService {
      * GET /api/appointments/my - the current PATIENT's own appointments.
      */
     @Transactional(readOnly = true)
-    public List<Appointment> getMyAppointments() {
+    public List<AppointmentResponse> getMyAppointments() {
         Patient patient = currentUserResolver.getCurrentPatient();
-        return appointmentRepository.findByPatientId(patient.getId());
+        return appointmentRepository.findByPatientId(patient.getId()).stream()
+                .map(AppointmentResponse::from)
+                .toList();
     }
 
     /**
@@ -103,34 +106,44 @@ public class AppointmentService {
      * decides which subset each of those two roles actually gets.)
      */
     @Transactional(readOnly = true)
-    public List<Appointment> getAllOrAssignedAppointments() {
+    public List<AppointmentResponse> getAllOrAssignedAppointments() {
         User currentUser = currentUserResolver.getCurrentUser();
 
+        List<Appointment> appointments;
         if (currentUser.getRole() == Role.ADMIN) {
-            return appointmentRepository.findAll();
+            appointments = appointmentRepository.findAll();
+        } else {
+            // DOCTOR
+            Doctor doctor = currentUserResolver.getCurrentDoctor();
+            appointments = appointmentRepository.findByDoctorId(doctor.getId());
         }
-
-        // DOCTOR
-        Doctor doctor = currentUserResolver.getCurrentDoctor();
-        return appointmentRepository.findByDoctorId(doctor.getId());
+        return appointments.stream().map(AppointmentResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
-    public Appointment getAppointmentById(Long id) {
+    public AppointmentResponse getAppointmentById(Long id) {
+        return AppointmentResponse.from(findAppointmentEntity(id));
+    }
+
+    public List<AppointmentResponse> getAllAppointments() {
+        return appointmentRepository.findAll().stream().map(AppointmentResponse::from).toList();
+    }
+
+    public List<AppointmentResponse> getAppointmentsByPatientId(Long patientId) {
+        return appointmentRepository.findByPatientId(patientId).stream()
+                .map(AppointmentResponse::from)
+                .toList();
+    }
+
+    public List<AppointmentResponse> getAppointmentsByDoctorId(Long doctorId) {
+        return appointmentRepository.findByDoctorId(doctorId).stream()
+                .map(AppointmentResponse::from)
+                .toList();
+    }
+
+    private Appointment findAppointmentEntity(Long id) {
         return appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
-    }
-
-    public List<Appointment> getAllAppointments() {
-        return appointmentRepository.findAll();
-    }
-
-    public List<Appointment> getAppointmentsByPatientId(Long patientId) {
-        return appointmentRepository.findByPatientId(patientId);
-    }
-
-    public List<Appointment> getAppointmentsByDoctorId(Long doctorId) {
-        return appointmentRepository.findByDoctorId(doctorId);
     }
 
     // ------------------------------------------------------------------
@@ -143,7 +156,7 @@ public class AppointmentService {
      * may approve any. Only valid starting from PENDING.
      */
     public Appointment approveAppointment(Long id) {
-        Appointment appointment = getAppointmentById(id);
+        Appointment appointment = findAppointmentEntity(id);
         assertCallerMayManage(appointment);
         assertTransition(appointment.getStatus(), AppointmentStatus.APPROVED);
         appointment.setStatus(AppointmentStatus.APPROVED);
@@ -157,7 +170,7 @@ public class AppointmentService {
     public AppointmentActionResponse approveAppointmentWithNotification(Long id) {
         Appointment approved = approveAppointment(id);
         String message = notificationService.notifyAppointmentApproved(approved);
-        return new AppointmentActionResponse(approved, message);
+        return new AppointmentActionResponse(AppointmentResponse.from(approved), message);
     }
 
     /**
@@ -165,7 +178,7 @@ public class AppointmentService {
      * Only valid starting from PENDING.
      */
     public Appointment rejectAppointment(Long id) {
-        Appointment appointment = getAppointmentById(id);
+        Appointment appointment = findAppointmentEntity(id);
         assertCallerMayManage(appointment);
         assertTransition(appointment.getStatus(), AppointmentStatus.REJECTED);
         appointment.setStatus(AppointmentStatus.REJECTED);
@@ -179,7 +192,7 @@ public class AppointmentService {
     public AppointmentActionResponse rejectAppointmentWithNotification(Long id) {
         Appointment rejected = rejectAppointment(id);
         String message = notificationService.notifyAppointmentCancelled(rejected);
-        return new AppointmentActionResponse(rejected, message);
+        return new AppointmentActionResponse(AppointmentResponse.from(rejected), message);
     }
 
     /**
@@ -190,7 +203,7 @@ public class AppointmentService {
      * Only valid starting from APPROVED.
      */
     public Appointment completeAppointment(Long id) {
-        Appointment appointment = getAppointmentById(id);
+        Appointment appointment = findAppointmentEntity(id);
 
         Doctor caller = currentUserResolver.getCurrentDoctor();
         if (!appointment.getDoctor().getId().equals(caller.getId())) {
@@ -246,7 +259,7 @@ public class AppointmentService {
     }
 
     public Appointment updateAppointment(Long id, Appointment updatedAppointment) {
-        Appointment existing = getAppointmentById(id);
+        Appointment existing = findAppointmentEntity(id);
         existing.setDate(updatedAppointment.getDate());
         existing.setStatus(updatedAppointment.getStatus());
         existing.setPatient(updatedAppointment.getPatient());
@@ -255,7 +268,7 @@ public class AppointmentService {
     }
 
     public void deleteAppointment(Long id) {
-        Appointment existing = getAppointmentById(id);
+        Appointment existing = findAppointmentEntity(id);
         appointmentRepository.delete(existing);
     }
 }

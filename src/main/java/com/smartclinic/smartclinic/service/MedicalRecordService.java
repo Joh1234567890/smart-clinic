@@ -1,6 +1,7 @@
 package com.smartclinic.smartclinic.service;
 
 import com.smartclinic.smartclinic.dto.CreateMedicalRecordRequest;
+import com.smartclinic.smartclinic.dto.MedicalRecordResponse;
 import com.smartclinic.smartclinic.entity.Appointment;
 import com.smartclinic.smartclinic.entity.AppointmentStatus;
 import com.smartclinic.smartclinic.entity.Doctor;
@@ -85,9 +86,11 @@ public class MedicalRecordService {
      * GET /api/medical-records/my - the current PATIENT's own records.
      */
     @Transactional(readOnly = true)
-    public List<MedicalRecord> getMyMedicalRecords() {
+    public List<MedicalRecordResponse> getMyMedicalRecords() {
         var patient = currentUserResolver.getCurrentPatient();
-        return medicalRecordRepository.findByPatientId(patient.getId());
+        return medicalRecordRepository.findByPatientId(patient.getId()).stream()
+                .map(MedicalRecordResponse::from)
+                .toList();
     }
 
     /**
@@ -96,38 +99,37 @@ public class MedicalRecordService {
      * from one of their own appointments; an admin sees all of them.
      */
     @Transactional(readOnly = true)
-    public List<MedicalRecord> getRecordsForPatient(Long patientId) {
+    public List<MedicalRecordResponse> getRecordsForPatient(Long patientId) {
         var currentUser = currentUserResolver.getCurrentUser();
 
         List<MedicalRecord> records = medicalRecordRepository.findByPatientId(patientId);
 
-        if (currentUser.getRole() == Role.ADMIN) {
-            return records;
+        if (currentUser.getRole() != Role.ADMIN) {
+            // DOCTOR: filter down to only records created from their own appointments.
+            Doctor caller = currentUserResolver.getCurrentDoctor();
+            records = records.stream()
+                    .filter(record -> record.getDoctor().getId().equals(caller.getId()))
+                    .toList();
         }
 
-        // DOCTOR: filter down to only records created from their own appointments.
-        Doctor caller = currentUserResolver.getCurrentDoctor();
-        return records.stream()
-                .filter(record -> record.getDoctor().getId().equals(caller.getId()))
-                .toList();
+        return records.stream().map(MedicalRecordResponse::from).toList();
     }
 
     // ------------------------------------------------------------------
     // Plain CRUD retained from Phase 1 (generic admin-style management)
     // ------------------------------------------------------------------
 
-    public List<MedicalRecord> getAllMedicalRecords() {
-        return medicalRecordRepository.findAll();
+    public List<MedicalRecordResponse> getAllMedicalRecords() {
+        return medicalRecordRepository.findAll().stream().map(MedicalRecordResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
-    public MedicalRecord getMedicalRecordById(Long id) {
-        return medicalRecordRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("MedicalRecord", id));
+    public MedicalRecordResponse getMedicalRecordById(Long id) {
+        return MedicalRecordResponse.from(findMedicalRecordEntity(id));
     }
 
     public MedicalRecord updateMedicalRecord(Long id, MedicalRecord updatedRecord) {
-        MedicalRecord existing = getMedicalRecordById(id);
+        MedicalRecord existing = findMedicalRecordEntity(id);
         existing.setDiagnosis(updatedRecord.getDiagnosis());
         existing.setTreatment(updatedRecord.getTreatment());
         existing.setNotes(updatedRecord.getNotes());
@@ -138,7 +140,12 @@ public class MedicalRecordService {
     }
 
     public void deleteMedicalRecord(Long id) {
-        MedicalRecord existing = getMedicalRecordById(id);
+        MedicalRecord existing = findMedicalRecordEntity(id);
         medicalRecordRepository.delete(existing);
+    }
+
+    private MedicalRecord findMedicalRecordEntity(Long id) {
+        return medicalRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MedicalRecord", id));
     }
 }

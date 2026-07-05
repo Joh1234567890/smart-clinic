@@ -1,6 +1,7 @@
 package com.smartclinic.smartclinic.controller;
 
 import com.smartclinic.smartclinic.dto.CreateMedicalRecordRequest;
+import com.smartclinic.smartclinic.dto.MedicalRecordResponse;
 import com.smartclinic.smartclinic.entity.MedicalRecord;
 import com.smartclinic.smartclinic.service.MedicalRecordService;
 import jakarta.validation.Valid;
@@ -34,26 +35,26 @@ public class MedicalRecordController {
 
     @PreAuthorize("hasRole('DOCTOR')")
     @PostMapping("/create")
-    public ResponseEntity<MedicalRecord> createMedicalRecord(@Valid @RequestBody CreateMedicalRecordRequest request) {
+    public ResponseEntity<MedicalRecordResponse> createMedicalRecord(@Valid @RequestBody CreateMedicalRecordRequest request) {
         MedicalRecord created = medicalRecordService.createMedicalRecord(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(MedicalRecordResponse.from(created));
     }
 
     @PreAuthorize("hasRole('PATIENT')")
     @GetMapping("/my")
-    public ResponseEntity<List<MedicalRecord>> getMyMedicalRecords() {
+    public ResponseEntity<List<MedicalRecordResponse>> getMyMedicalRecords() {
         return ResponseEntity.ok(medicalRecordService.getMyMedicalRecords());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
-    public ResponseEntity<List<MedicalRecord>> getAllMedicalRecordsForAdmin() {
+    public ResponseEntity<List<MedicalRecordResponse>> getAllMedicalRecordsForAdmin() {
         return ResponseEntity.ok(medicalRecordService.getAllMedicalRecords());
     }
 
     @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
     @GetMapping("/patient/{id}")
-    public ResponseEntity<List<MedicalRecord>> getRecordsForPatient(@PathVariable Long id) {
+    public ResponseEntity<List<MedicalRecordResponse>> getRecordsForPatient(@PathVariable Long id) {
         return ResponseEntity.ok(medicalRecordService.getRecordsForPatient(id));
     }
 
@@ -63,20 +64,20 @@ public class MedicalRecordController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<MedicalRecord>> getAllMedicalRecords() {
+    public ResponseEntity<List<MedicalRecordResponse>> getAllMedicalRecords() {
         return ResponseEntity.ok(medicalRecordService.getAllMedicalRecords());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<MedicalRecord> getMedicalRecordById(@PathVariable Long id) {
+    public ResponseEntity<MedicalRecordResponse> getMedicalRecordById(@PathVariable Long id) {
         return ResponseEntity.ok(medicalRecordService.getMedicalRecordById(id));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<MedicalRecord> updateMedicalRecord(@PathVariable Long id, @Valid @RequestBody MedicalRecord medicalRecord) {
-        return ResponseEntity.ok(medicalRecordService.updateMedicalRecord(id, medicalRecord));
+    public ResponseEntity<MedicalRecordResponse> updateMedicalRecord(@PathVariable Long id, @Valid @RequestBody MedicalRecord medicalRecord) {
+        return ResponseEntity.ok(MedicalRecordResponse.from(medicalRecordService.updateMedicalRecord(id, medicalRecord)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -1,6 +1,5 @@
 package com.smartclinic.smartclinic.dto;
 
-import com.smartclinic.smartclinic.entity.Appointment;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +15,6 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class AppointmentActionResponse {
-    private Appointment appointment;
+    private AppointmentResponse appointment;
     private String notificationMessage;
 }
